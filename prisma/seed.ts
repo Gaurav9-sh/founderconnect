@@ -84,7 +84,32 @@ async function main() {
     data: { requesterId: ada.id, receiverId: reid.id, status: 'PENDING' },
   });
 
-  console.log('Seeded 3 users + 1 startup. Login with any email + password123');
+  const post1 = await prisma.post.create({
+    data: {
+      authorId: ada.id,
+      body:
+        "Just shipped the first version of Lumen's eval dashboard 🎉\n\nLooking for 5 more design partners — AI teams running production LLM pipelines. DM if interested.",
+    },
+  });
+
+  await prisma.post.create({
+    data: {
+      authorId: reid.id,
+      body:
+        'Unpopular opinion: founders over-index on pitch decks and under-index on weekly investor updates. The update is what actually builds trust.',
+    },
+  });
+
+  await prisma.comment.create({
+    data: {
+      postId: post1.id,
+      authorId: reid.id,
+      body: "Congrats on shipping! Happy to make a few intros to AI infra teams I'm advising.",
+    },
+  });
+  await prisma.postLike.create({ data: { postId: post1.id, userId: reid.id } });
+
+  console.log('Seeded 3 users + 1 startup + 2 posts. Login with any email + password123');
 }
 
 main()

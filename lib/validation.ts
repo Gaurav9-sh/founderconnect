@@ -46,3 +46,13 @@ export const connectionSchema = z.object({
   receiverId: z.string().min(1),
   message: z.string().max(500).optional(),
 });
+
+export const postSchema = z.object({
+  body: z.string().min(1).max(5000),
+  imageUrl: z.string().url().optional().nullable().or(z.literal('')),
+});
+
+export const commentSchema = z.object({
+  postId: z.string().min(1),
+  body: z.string().min(1).max(2000),
+});

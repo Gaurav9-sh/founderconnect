@@ -29,6 +29,9 @@ model User {
   receivedMessages    Message[]            @relation("ReceivedMessages")
   pitchInterests      PitchInterest[]
   notifications       Notification[]
+  posts               Post[]
+  postLikes           PostLike[]
+  comments            Comment[]
 }
 
 model Profile {
@@ -125,4 +128,45 @@ model Notification {
   createdAt DateTime  @default(now())
 
   @@index([userId, readAt])
+}
+
+model Post {
+  id             String     @id @default(cuid())
+  authorId       String
+  author         User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body           String
+  imageUrl       String?
+  originalPostId String?
+  originalPost   Post?      @relation("Forwards", fields: [originalPostId], references: [id], onDelete: SetNull)
+  forwards       Post[]     @relation("Forwards")
+  likes          PostLike[]
+  comments       Comment[]
+  createdAt      DateTime   @default(now())
+
+  @@index([createdAt])
+  @@index([authorId])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
 }

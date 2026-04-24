@@ -2,8 +2,11 @@ import { Suspense } from 'react';
 import { requirePageUser } from '@/lib/auth';
 import { discoverUsers } from '@/services/userService';
 import { listStartups } from '@/services/startupService';
+import { listFeed } from '@/services/postService';
 import { PersonCard } from '@/components/PersonCard';
 import { StartupCard } from '@/components/StartupCard';
+import { PostCard } from '@/components/PostCard';
+import { PostComposer } from '@/components/PostComposer';
 import { Input, Select } from '@/components/ui/Input';
 import type { Role } from '@/lib/enums';
 
@@ -12,51 +15,76 @@ export const dynamic = 'force-dynamic';
 type Props = { searchParams: { q?: string; role?: Role; tab?: string } };
 
 export default async function FeedPage({ searchParams }: Props) {
-  await requirePageUser();
-
-  const tab = searchParams.tab ?? 'people';
+  const me = await requirePageUser();
+  const tab = searchParams.tab ?? 'posts';
 
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Discover</h1>
+        <h1 className="text-2xl font-semibold">Feed</h1>
         <div className="flex gap-2">
+          <TabLink label="Posts" href={`/feed?tab=posts`} active={tab === 'posts'} />
           <TabLink label="People" href={`/feed?tab=people`} active={tab === 'people'} />
           <TabLink label="Startups" href={`/feed?tab=startups`} active={tab === 'startups'} />
         </div>
       </div>
 
-      <form className="mt-6 flex flex-wrap gap-3" action="/feed">
-        <input type="hidden" name="tab" value={tab} />
-        <Input
-          name="q"
-          placeholder={tab === 'people' ? 'Search people by name, skill, headline…' : 'Search startups…'}
-          defaultValue={searchParams.q ?? ''}
-          className="max-w-sm"
-        />
-        {tab === 'people' && (
-          <Select name="role" defaultValue={searchParams.role ?? ''} className="max-w-xs">
-            <option value="">All roles</option>
-            <option value="FOUNDER">Founders</option>
-            <option value="MENTOR">Mentors</option>
-            <option value="INVESTOR">Investors</option>
-          </Select>
-        )}
-        <button className="rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">
-          Search
-        </button>
-      </form>
-
-      <Suspense fallback={<p className="mt-8 text-sm text-zinc-500">Loading…</p>}>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tab === 'people' ? (
-            <PeopleList q={searchParams.q} role={searchParams.role} />
-          ) : (
-            <StartupsList q={searchParams.q} />
-          )}
+      {tab === 'posts' ? (
+        <div className="mt-6 mx-auto max-w-2xl space-y-4">
+          <PostComposer authorName={me.name} />
+          <Suspense fallback={<p className="text-sm text-zinc-500">Loading posts…</p>}>
+            <PostsList viewerId={me.id} />
+          </Suspense>
         </div>
-      </Suspense>
+      ) : (
+        <>
+          <form className="mt-6 flex flex-wrap gap-3" action="/feed">
+            <input type="hidden" name="tab" value={tab} />
+            <Input
+              name="q"
+              placeholder={tab === 'people' ? 'Search people by name, skill, headline…' : 'Search startups…'}
+              defaultValue={searchParams.q ?? ''}
+              className="max-w-sm"
+            />
+            {tab === 'people' && (
+              <Select name="role" defaultValue={searchParams.role ?? ''} className="max-w-xs">
+                <option value="">All roles</option>
+                <option value="FOUNDER">Founders</option>
+                <option value="MENTOR">Mentors</option>
+                <option value="INVESTOR">Investors</option>
+              </Select>
+            )}
+            <button className="rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">
+              Search
+            </button>
+          </form>
+
+          <Suspense fallback={<p className="mt-8 text-sm text-zinc-500">Loading…</p>}>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {tab === 'people' ? (
+                <PeopleList q={searchParams.q} role={searchParams.role} />
+              ) : (
+                <StartupsList q={searchParams.q} />
+              )}
+            </div>
+          </Suspense>
+        </>
+      )}
     </div>
+  );
+}
+
+async function PostsList({ viewerId }: { viewerId: string }) {
+  const posts = await listFeed(viewerId);
+  if (posts.length === 0) {
+    return <EmptyState text="No posts yet. Be the first to share something." />;
+  }
+  return (
+    <>
+      {posts.map((p) => (
+        <PostCard key={p.id} post={p} />
+      ))}
+    </>
   );
 }
 

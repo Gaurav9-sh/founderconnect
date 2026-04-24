@@ -6,6 +6,12 @@ import { sendRequest, respondToRequest } from '@/services/connectionService';
 import { createStartup, expressInterest } from '@/services/startupService';
 import { sendMessage } from '@/services/messageService';
 import { upsertProfile } from '@/services/userService';
+import {
+  createPost,
+  forwardPost,
+  toggleLike,
+  addComment,
+} from '@/services/postService';
 
 export async function connectAction(formData: FormData) {
   const user = await requireUser();
@@ -71,4 +77,38 @@ export async function saveProfileAction(formData: FormData) {
   await upsertProfile(user.id, Object.fromEntries(formData));
   revalidatePath(`/profile/${user.id}`);
   revalidatePath('/dashboard');
+}
+
+export async function createPostAction(formData: FormData) {
+  const user = await requireUser();
+  await createPost(user.id, {
+    body: formData.get('body'),
+    imageUrl: formData.get('imageUrl'),
+  });
+  revalidatePath('/feed');
+}
+
+export async function toggleLikeAction(formData: FormData) {
+  const user = await requireUser();
+  const postId = String(formData.get('postId'));
+  await toggleLike(user.id, postId);
+  revalidatePath('/feed');
+  revalidatePath(`/posts/${postId}`);
+}
+
+export async function commentAction(formData: FormData) {
+  const user = await requireUser();
+  const postId = String(formData.get('postId'));
+  await addComment(user.id, { postId, body: formData.get('body') });
+  revalidatePath('/feed');
+  revalidatePath(`/posts/${postId}`);
+}
+
+export async function forwardAction(formData: FormData) {
+  const user = await requireUser();
+  const postId = String(formData.get('postId'));
+  const body = formData.get('body');
+  await forwardPost(user.id, postId, typeof body === 'string' ? body : undefined);
+  revalidatePath('/feed');
+  revalidatePath(`/posts/${postId}`);
 }
