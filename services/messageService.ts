@@ -1,8 +1,10 @@
-import { prisma } from '@/lib/prisma';
+import { connectDB } from '@/lib/db';
+import { Message, Notification } from '@/models';
 import { messageSchema } from '@/lib/validation';
 import { connectionBetween } from './connectionService';
 
 export async function sendMessage(senderId: string, input: unknown) {
+  await connectDB();
   const data = messageSchema.parse(input);
   if (data.receiverId === senderId) throw new Error('Cannot message yourself');
 
@@ -10,35 +12,41 @@ export async function sendMessage(senderId: string, input: unknown) {
   if (!conn || conn.status !== 'ACCEPTED')
     throw new Error('You must be connected to send messages');
 
-  const msg = await prisma.message.create({
-    data: { senderId, receiverId: data.receiverId, body: data.body },
+  const msg = await Message.create({
+    senderId,
+    receiverId: data.receiverId,
+    body: data.body,
   });
 
-  await prisma.notification.create({
-    data: {
-      userId: data.receiverId,
-      type: 'MESSAGE',
-      payload: JSON.stringify({ fromUserId: senderId, messageId: msg.id }),
-    },
+  await Notification.create({
+    userId: data.receiverId,
+    type: 'MESSAGE',
+    payload: JSON.stringify({ fromUserId: senderId, messageId: msg.id }),
   });
 
   return msg;
 }
 
 export async function listThreads(userId: string) {
-  const msgs = await prisma.message.findMany({
-    where: { OR: [{ senderId: userId }, { receiverId: userId }] },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      sender: { select: { id: true, name: true } },
-      receiver: { select: { id: true, name: true } },
-    },
-  });
+  await connectDB();
+  const msgs = await Message.find({
+    $or: [{ senderId: userId }, { receiverId: userId }],
+  })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'sender', select: 'name' })
+    .populate({ path: 'receiver', select: 'name' })
+    .lean({ virtuals: true });
+
+  type Populated = (typeof msgs)[number] & {
+    sender: { id: string; name: string };
+    receiver: { id: string; name: string };
+  };
+
   const threads = new Map<
     string,
     { otherId: string; otherName: string; last: string; at: Date }
   >();
-  for (const m of msgs) {
+  for (const m of msgs as unknown as Populated[]) {
     const other = m.senderId === userId ? m.receiver : m.sender;
     if (!threads.has(other.id)) {
       threads.set(other.id, {
@@ -52,21 +60,22 @@ export async function listThreads(userId: string) {
   return [...threads.values()];
 }
 
-export function listThread(userId: string, otherId: string) {
-  return prisma.message.findMany({
-    where: {
-      OR: [
-        { senderId: userId, receiverId: otherId },
-        { senderId: otherId, receiverId: userId },
-      ],
-    },
-    orderBy: { createdAt: 'asc' },
-  });
+export async function listThread(userId: string, otherId: string) {
+  await connectDB();
+  return Message.find({
+    $or: [
+      { senderId: userId, receiverId: otherId },
+      { senderId: otherId, receiverId: userId },
+    ],
+  })
+    .sort({ createdAt: 1 })
+    .lean({ virtuals: true });
 }
 
 export async function markThreadRead(userId: string, otherId: string) {
-  await prisma.message.updateMany({
-    where: { receiverId: userId, senderId: otherId, readAt: null },
-    data: { readAt: new Date() },
-  });
+  await connectDB();
+  await Message.updateMany(
+    { receiverId: userId, senderId: otherId, readAt: null },
+    { $set: { readAt: new Date() } },
+  );
 }

@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { requirePageUser } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { connectDB } from '@/lib/db';
+import { Startup, PitchInterest } from '@/models';
+import type {
+  StartupWithInterests,
+  PitchInterestWithStartup,
+} from '@/types/models';
 import { listPendingForMe, listConnections } from '@/services/connectionService';
 import { listThreads } from '@/services/messageService';
 import { Card, CardBody, Badge, Avatar } from '@/components/ui/Card';
@@ -13,6 +18,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const user = await requirePageUser();
+  await connectDB();
 
   const [pending, connections, threads, myStartups, myInterests] =
     await Promise.all([
@@ -20,19 +26,17 @@ export default async function DashboardPage() {
       listConnections(user.id),
       listThreads(user.id),
       user.role === 'FOUNDER'
-        ? prisma.startup.findMany({
-            where: { founderId: user.id },
-            include: { interests: true },
-            orderBy: { createdAt: 'desc' },
-          })
-        : Promise.resolve([]),
+        ? (Startup.find({ founderId: user.id })
+            .sort({ createdAt: -1 })
+            .populate('interests')
+            .lean({ virtuals: true }) as unknown as Promise<StartupWithInterests[]>)
+        : Promise.resolve([] as StartupWithInterests[]),
       user.role === 'INVESTOR'
-        ? prisma.pitchInterest.findMany({
-            where: { investorId: user.id },
-            include: { startup: { include: { founder: true } } },
-            orderBy: { createdAt: 'desc' },
-          })
-        : Promise.resolve([]),
+        ? (PitchInterest.find({ investorId: user.id })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'startup', populate: { path: 'founder' } })
+            .lean({ virtuals: true }) as unknown as Promise<PitchInterestWithStartup[]>)
+        : Promise.resolve([] as PitchInterestWithStartup[]),
     ]);
 
   return (

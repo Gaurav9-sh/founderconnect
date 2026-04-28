@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Profile, User } from '@prisma/client';
+import type { Profile, User } from '@/types/models';
 import { Avatar, Badge, Card, CardBody } from './ui/Card';
 import { roleLabel, splitList } from '@/lib/utils';
 

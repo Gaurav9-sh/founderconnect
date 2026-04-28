@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requirePageUser } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { connectDB } from '@/lib/db';
+import { User } from '@/models';
+import type { UserWithProfile } from '@/types/models';
 import { listThread, markThreadRead } from '@/services/messageService';
 import { connectionBetween } from '@/services/connectionService';
 import { sendMessageAction } from '@/app/actions';
@@ -14,10 +16,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function ThreadPage({ params }: { params: { userId: string } }) {
   const user = await requirePageUser();
-  const other = await prisma.user.findUnique({
-    where: { id: params.userId },
-    include: { profile: true },
-  });
+  await connectDB();
+  const other = (await User.findById(params.userId)
+    .populate('profile')
+    .lean({ virtuals: true })) as unknown as UserWithProfile | null;
   if (!other) notFound();
 
   const conn = await connectionBetween(user.id, other.id);

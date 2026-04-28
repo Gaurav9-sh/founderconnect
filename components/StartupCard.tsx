@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Startup } from '@prisma/client';
+import type { Startup } from '@/types/models';
 import { Badge, Card, CardBody } from './ui/Card';
 import { formatMoney, stageLabel } from '@/lib/utils';
 

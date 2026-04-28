@@ -1,20 +1,23 @@
-import { prisma } from '@/lib/prisma';
+import { connectDB } from '@/lib/db';
+import { Notification } from '@/models';
 
-export function listNotifications(userId: string, take = 20) {
-  return prisma.notification.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    take,
-  });
+export async function listNotifications(userId: string, take = 20) {
+  await connectDB();
+  return Notification.find({ userId })
+    .sort({ createdAt: -1 })
+    .limit(take)
+    .lean({ virtuals: true });
 }
 
-export function unreadCount(userId: string) {
-  return prisma.notification.count({ where: { userId, readAt: null } });
+export async function unreadCount(userId: string) {
+  await connectDB();
+  return Notification.countDocuments({ userId, readAt: null });
 }
 
-export function markAllRead(userId: string) {
-  return prisma.notification.updateMany({
-    where: { userId, readAt: null },
-    data: { readAt: new Date() },
-  });
+export async function markAllRead(userId: string) {
+  await connectDB();
+  return Notification.updateMany(
+    { userId, readAt: null },
+    { $set: { readAt: new Date() } },
+  );
 }

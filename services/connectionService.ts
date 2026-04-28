@@ -1,35 +1,36 @@
-import { prisma } from '@/lib/prisma';
+import { connectDB } from '@/lib/db';
+import { Connection, Notification } from '@/models';
 import { connectionSchema } from '@/lib/validation';
 import type { ConnectionStatus } from '@/lib/enums';
+import type {
+  ConnectionWithUsers,
+  ConnectionWithRequester,
+  Connection as ConnectionT,
+} from '@/types/models';
 
 export async function sendRequest(requesterId: string, input: unknown) {
+  await connectDB();
   const data = connectionSchema.parse(input);
   if (data.receiverId === requesterId) throw new Error('Cannot connect to yourself');
 
-  const existing = await prisma.connection.findFirst({
-    where: {
-      OR: [
-        { requesterId, receiverId: data.receiverId },
-        { requesterId: data.receiverId, receiverId: requesterId },
-      ],
-    },
+  const existing = await Connection.findOne({
+    $or: [
+      { requesterId, receiverId: data.receiverId },
+      { requesterId: data.receiverId, receiverId: requesterId },
+    ],
   });
   if (existing) throw new Error('Connection already exists');
 
-  const conn = await prisma.connection.create({
-    data: {
-      requesterId,
-      receiverId: data.receiverId,
-      message: data.message ?? null,
-    },
+  const conn = await Connection.create({
+    requesterId,
+    receiverId: data.receiverId,
+    message: data.message ?? null,
   });
 
-  await prisma.notification.create({
-    data: {
-      userId: data.receiverId,
-      type: 'CONNECTION_REQUEST',
-      payload: JSON.stringify({ connectionId: conn.id, fromUserId: requesterId }),
-    },
+  await Notification.create({
+    userId: data.receiverId,
+    type: 'CONNECTION_REQUEST',
+    payload: JSON.stringify({ connectionId: conn.id, fromUserId: requesterId }),
   });
 
   return conn;
@@ -40,57 +41,61 @@ export async function respondToRequest(
   connectionId: string,
   accept: boolean,
 ) {
-  const conn = await prisma.connection.findUnique({ where: { id: connectionId } });
+  await connectDB();
+  const conn = await Connection.findById(connectionId);
   if (!conn || conn.receiverId !== userId) throw new Error('Not found');
   if (conn.status !== 'PENDING') throw new Error('Already handled');
 
   const status: ConnectionStatus = accept ? 'ACCEPTED' : 'REJECTED';
-  const updated = await prisma.connection.update({
-    where: { id: connectionId },
-    data: { status },
-  });
+  conn.status = status;
+  await conn.save();
 
   if (accept) {
-    await prisma.notification.create({
-      data: {
-        userId: conn.requesterId,
-        type: 'CONNECTION_ACCEPTED',
-        payload: JSON.stringify({ byUserId: userId }),
-      },
+    await Notification.create({
+      userId: conn.requesterId,
+      type: 'CONNECTION_ACCEPTED',
+      payload: JSON.stringify({ byUserId: userId }),
     });
   }
-  return updated;
+  return conn;
 }
 
-export function listConnections(userId: string) {
-  return prisma.connection.findMany({
-    where: {
-      status: 'ACCEPTED',
-      OR: [{ requesterId: userId }, { receiverId: userId }],
-    },
-    include: {
-      requester: { include: { profile: true } },
-      receiver: { include: { profile: true } },
-    },
-    orderBy: { updatedAt: 'desc' },
-  });
+export async function listConnections(
+  userId: string,
+): Promise<ConnectionWithUsers[]> {
+  await connectDB();
+  const docs = await Connection.find({
+    status: 'ACCEPTED',
+    $or: [{ requesterId: userId }, { receiverId: userId }],
+  })
+    .sort({ updatedAt: -1 })
+    .populate({ path: 'requester', populate: { path: 'profile' } })
+    .populate({ path: 'receiver', populate: { path: 'profile' } })
+    .lean({ virtuals: true });
+  return docs as unknown as ConnectionWithUsers[];
 }
 
-export function listPendingForMe(userId: string) {
-  return prisma.connection.findMany({
-    where: { receiverId: userId, status: 'PENDING' },
-    include: { requester: { include: { profile: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+export async function listPendingForMe(
+  userId: string,
+): Promise<ConnectionWithRequester[]> {
+  await connectDB();
+  const docs = await Connection.find({ receiverId: userId, status: 'PENDING' })
+    .sort({ createdAt: -1 })
+    .populate({ path: 'requester', populate: { path: 'profile' } })
+    .lean({ virtuals: true });
+  return docs as unknown as ConnectionWithRequester[];
 }
 
-export async function connectionBetween(a: string, b: string) {
-  return prisma.connection.findFirst({
-    where: {
-      OR: [
-        { requesterId: a, receiverId: b },
-        { requesterId: b, receiverId: a },
-      ],
-    },
-  });
+export async function connectionBetween(
+  a: string,
+  b: string,
+): Promise<ConnectionT | null> {
+  await connectDB();
+  const doc = await Connection.findOne({
+    $or: [
+      { requesterId: a, receiverId: b },
+      { requesterId: b, receiverId: a },
+    ],
+  }).lean({ virtuals: true });
+  return doc as unknown as ConnectionT | null;
 }
