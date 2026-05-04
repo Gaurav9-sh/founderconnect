@@ -7,12 +7,11 @@ import { PersonCard } from '@/components/PersonCard';
 import { StartupCard } from '@/components/StartupCard';
 import { PostCard } from '@/components/PostCard';
 import { PostComposer } from '@/components/PostComposer';
-import { Input, Select } from '@/components/ui/Input';
-import type { Role } from '@/lib/enums';
+import { Input } from '@/components/ui/Input';
 
 export const dynamic = 'force-dynamic';
 
-type Props = { searchParams: { q?: string; role?: Role; tab?: string } };
+type Props = { searchParams: { q?: string; tab?: string } };
 
 export default async function FeedPage({ searchParams }: Props) {
   const me = await requirePageUser();
@@ -46,14 +45,6 @@ export default async function FeedPage({ searchParams }: Props) {
               defaultValue={searchParams.q ?? ''}
               className="max-w-sm"
             />
-            {tab === 'people' && (
-              <Select name="role" defaultValue={searchParams.role ?? ''} className="max-w-xs">
-                <option value="">All roles</option>
-                <option value="FOUNDER">Founders</option>
-                <option value="MENTOR">Mentors</option>
-                <option value="INVESTOR">Investors</option>
-              </Select>
-            )}
             <button className="rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">
               Search
             </button>
@@ -62,7 +53,7 @@ export default async function FeedPage({ searchParams }: Props) {
           <Suspense fallback={<p className="mt-8 text-sm text-zinc-500">Loading…</p>}>
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {tab === 'people' ? (
-                <PeopleList q={searchParams.q} role={searchParams.role} />
+                <PeopleList q={searchParams.q} />
               ) : (
                 <StartupsList q={searchParams.q} />
               )}
@@ -88,8 +79,8 @@ async function PostsList({ viewerId }: { viewerId: string }) {
   );
 }
 
-async function PeopleList({ q, role }: { q?: string; role?: Role }) {
-  const users = await discoverUsers({ q, role });
+async function PeopleList({ q }: { q?: string }) {
+  const users = await discoverUsers({ q });
   if (users.length === 0) {
     return <EmptyState text="No people match your filters yet." />;
   }

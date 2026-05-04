@@ -17,6 +17,7 @@ export default async function StartupPage({ params }: { params: { id: string } }
   const alreadyInterested = me
     ? startup.interests.some((i) => i.investorId === me.id)
     : false;
+  const canExpressInterest = !!me && me.id !== startup.founder.id;
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -58,7 +59,7 @@ export default async function StartupPage({ params }: { params: { id: string } }
           </CardBody>
         </Card>
 
-        {me?.role === 'INVESTOR' && !alreadyInterested && (
+        {canExpressInterest && !alreadyInterested && (
           <Card>
             <CardBody>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Express interest</h2>
@@ -74,7 +75,7 @@ export default async function StartupPage({ params }: { params: { id: string } }
           </Card>
         )}
 
-        {me?.role === 'INVESTOR' && alreadyInterested && (
+        {canExpressInterest && alreadyInterested && (
           <Card>
             <CardBody className="flex items-center justify-between">
               <p className="text-sm text-zinc-600 dark:text-zinc-300">

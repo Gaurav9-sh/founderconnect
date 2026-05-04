@@ -1,12 +1,10 @@
 import { z } from 'zod';
 
-export const RoleEnum = z.enum(['FOUNDER', 'MENTOR', 'INVESTOR']);
-
 export const registerSchema = z.object({
   name: z.string().min(2).max(80),
   email: z.string().email().transform((e) => e.toLowerCase()),
   password: z.string().min(8).max(100),
-  role: RoleEnum,
+  role: z.enum(['FOUNDER', 'INVESTOR', 'MENTOR']),
 });
 
 export const profileSchema = z.object({

@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { requirePageUser } from '@/lib/auth';
 import { createStartupAction } from '@/app/actions';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -6,8 +5,7 @@ import { Field, Input, Textarea, Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
 export default async function NewStartupPage() {
-  const user = await requirePageUser();
-  if (user.role !== 'FOUNDER') redirect('/dashboard');
+  await requirePageUser();
 
   return (
     <div className="mx-auto max-w-2xl">

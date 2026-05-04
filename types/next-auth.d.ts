@@ -1,5 +1,5 @@
-import type { Role } from '@/lib/enums';
 import 'next-auth';
+import type { UserRole } from '@/types/models';
 
 declare module 'next-auth' {
   interface Session {
@@ -7,18 +7,18 @@ declare module 'next-auth' {
       id: string;
       email: string;
       name: string;
-      role: Role;
+      role: UserRole;
     };
   }
   interface User {
     id: string;
-    role: Role;
+    role: UserRole;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
     id?: string;
-    role?: Role;
+    role?: UserRole;
   }
 }

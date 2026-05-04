@@ -6,7 +6,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Field, Input, Select } from '@/components/ui/Input';
+import { Field, Input } from '@/components/ui/Input';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -60,12 +60,18 @@ export default function SignupPage() {
             <Field name="password" label="Password" hint="At least 8 characters">
               <Input id="password" name="password" type="password" required minLength={8} autoComplete="new-password" />
             </Field>
-            <Field name="role" label="I am a…">
-              <Select id="role" name="role" defaultValue="FOUNDER" required>
-                <option value="FOUNDER">Founder (early stage)</option>
-                <option value="MENTOR">Experienced founder / CEO / mentor</option>
-                <option value="INVESTOR">Investor / VC</option>
-              </Select>
+            <Field name="role" label="I'm joining as">
+              <select
+                id="role"
+                name="role"
+                required
+                defaultValue="FOUNDER"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                <option value="FOUNDER">Founder</option>
+                <option value="INVESTOR">Investor</option>
+                <option value="MENTOR">Mentor</option>
+              </select>
             </Field>
             {err && <p className="text-sm text-red-600">{err}</p>}
             <Button type="submit" className="w-full" disabled={loading}>

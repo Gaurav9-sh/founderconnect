@@ -1,12 +1,14 @@
 // Plain TypeScript shapes for the documents stored in MongoDB.
 // Keep these in sync with the Mongoose schemas in /models.
 
+export type UserRole = 'FOUNDER' | 'INVESTOR' | 'MENTOR';
+
 export type User = {
   id: string;
   email: string;
   name: string;
+  role: UserRole;
   passwordHash: string;
-  role: string;
   createdAt: Date;
 };
 

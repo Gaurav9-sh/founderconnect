@@ -7,8 +7,13 @@ const UserSchema = new Schema(
     _id: { type: String, default: stringId },
     email: { type: String, required: true, unique: true, lowercase: true },
     name: { type: String, required: true },
+    role: {
+      type: String,
+      enum: ['FOUNDER', 'INVESTOR', 'MENTOR'],
+      required: true,
+      default: 'FOUNDER',
+    },
     passwordHash: { type: String, required: true },
-    role: { type: String, required: true }, // FOUNDER | MENTOR | INVESTOR
     createdAt: { type: Date, default: Date.now },
   },
   { _id: false },

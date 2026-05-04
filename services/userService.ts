@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/db';
 import { User, Profile } from '@/models';
 import { registerSchema, profileSchema } from '@/lib/validation';
-import type { Role } from '@/lib/enums';
 import type {
   UserWithProfile,
   UserWithProfileAndStartups,
@@ -21,11 +20,11 @@ export async function registerUser(input: unknown) {
   const user = await User.create({
     email: data.email,
     name: data.name,
-    passwordHash,
     role: data.role,
+    passwordHash,
   });
   await Profile.create({ userId: user.id });
-  return { id: user.id, email: user.email, name: user.name, role: user.role };
+  return { id: user.id, email: user.email, name: user.name };
 }
 
 export async function getUserWithProfile(
@@ -53,7 +52,6 @@ export async function upsertProfile(userId: string, input: unknown) {
 }
 
 export type DiscoveryFilters = {
-  role?: Role;
   q?: string;
   skill?: string;
   location?: string;
@@ -63,7 +61,6 @@ export async function discoverUsers(filters: DiscoveryFilters, take = 30) {
   await connectDB();
 
   const userMatch: Record<string, unknown> = {};
-  if (filters.role) userMatch.role = filters.role;
 
   // Profile-based filters require an extra round-trip: find matching profiles
   // first, then constrain users by id.

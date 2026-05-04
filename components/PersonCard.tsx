@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Profile, User } from '@/types/models';
 import { Avatar, Badge, Card, CardBody } from './ui/Card';
-import { roleLabel, splitList } from '@/lib/utils';
+import { splitList } from '@/lib/utils';
 
 type UserWithProfile = User & { profile: Profile | null };
 
@@ -13,12 +13,9 @@ export function PersonCard({ user }: { user: UserWithProfile }) {
         <div className="flex items-start gap-3">
           <Avatar name={user.name} url={user.profile?.avatarUrl} size={48} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <Link href={`/profile/${user.id}`} className="truncate font-semibold hover:underline">
-                {user.name}
-              </Link>
-              <Badge tone="brand">{roleLabel(user.role)}</Badge>
-            </div>
+            <Link href={`/profile/${user.id}`} className="truncate font-semibold hover:underline">
+              {user.name}
+            </Link>
             {user.profile?.headline && (
               <p className="mt-0.5 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
                 {user.profile.headline}

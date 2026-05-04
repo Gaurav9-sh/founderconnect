@@ -8,8 +8,6 @@ export async function POST(
 ) {
   try {
     const user = await requireUser();
-    if (user.role !== 'INVESTOR')
-      return NextResponse.json({ error: 'Only investors can express interest' }, { status: 403 });
     const { note } = (await req.json().catch(() => ({}))) as { note?: string };
     const interest = await expressInterest(user.id, params.id, note);
     return NextResponse.json(interest, { status: 201 });

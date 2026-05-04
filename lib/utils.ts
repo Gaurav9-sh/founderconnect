@@ -55,7 +55,8 @@ export function stageLabel(stage: string): string {
 export function roleLabel(role: string): string {
   return {
     FOUNDER: 'Founder',
-    MENTOR: 'Mentor / Advisor',
     INVESTOR: 'Investor',
+    MENTOR: 'Mentor',
   }[role] ?? role;
 }
+

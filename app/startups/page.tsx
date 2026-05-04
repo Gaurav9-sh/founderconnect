@@ -26,7 +26,7 @@ export default async function StartupsPage({ searchParams }: Props) {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Startups</h1>
-        {user?.role === 'FOUNDER' && (
+        {user && (
           <Link href="/startups/new">
             <Button>+ Create pitch</Button>
           </Link>

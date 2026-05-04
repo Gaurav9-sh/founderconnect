@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { connectDB } from './db';
 import { User } from '@/models';
-import type { Role } from './enums';
+import type { UserRole } from '@/types/models';
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role as Role,
+          role: user.role,
         };
       },
     }),
@@ -37,14 +37,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = (user as { id: string }).id;
-        token.role = (user as { role: Role }).role;
+        token.role = (user as { role: UserRole }).role;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
-        (session.user as { role?: Role }).role = token.role as Role;
+        (session.user as { role?: UserRole }).role = token.role as UserRole;
       }
       return session;
     },
@@ -59,7 +59,7 @@ export type SessionUser = {
   id: string;
   email: string;
   name: string;
-  role: Role;
+  role: UserRole;
 };
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
@@ -69,7 +69,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     id?: string;
     email?: string;
     name?: string;
-    role?: Role;
+    role?: UserRole;
   };
   if (!u.id || !u.email || !u.role) return null;
   return {

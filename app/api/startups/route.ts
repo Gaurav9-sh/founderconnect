@@ -18,8 +18,6 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
-    if (user.role !== 'FOUNDER')
-      return NextResponse.json({ error: 'Only founders can create startups' }, { status: 403 });
     const body = await req.json();
     const startup = await createStartup(user.id, body);
     return NextResponse.json(startup, { status: 201 });
